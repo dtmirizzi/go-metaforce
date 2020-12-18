@@ -30,6 +30,16 @@ func NewClient() *Client {
 	}
 }
 
+func NewDebugClient() *Client {
+	portType := NewMetadataPortType("", true, nil)
+	return &Client{
+		portType: portType,
+		LoginUrl: DefaultLoginUrl,
+		ApiVersion: DefaultApiVersion,
+		debug: true,
+	}
+}
+
 func (c *Client) SetDebug(debug bool) {
 	c.portType.SetDebug(debug)
 }
