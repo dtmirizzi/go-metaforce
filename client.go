@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DefaultApiVersion = "44.0"
+	DefaultApiVersion = "50.0"
 	DefaultLoginUrl   = "login.salesforce.com"
 )
 
@@ -30,8 +30,8 @@ func NewClient() *Client {
 	}
 }
 
-func (client *Client) SetDebug(debug bool) {
-	client.portType.SetDebug(debug)
+func (c *Client) SetDebug(debug bool) {
+	c.portType.SetDebug(debug)
 }
 
 func (c *Client) SetApiVersion(v string) {
@@ -75,58 +75,66 @@ func (c *Client) SetGzip(gz bool) {
 //	return nil
 //}
 
-func (client *Client) Login(username string, password string) error {
+func (c *Client) Login(username string, password string) error {
 	loginRequest := LoginRequest{Username: username, Password: password}
-	loginResponse, err := client.portType.Login(&loginRequest)
+	loginResponse, err := c.portType.Login(&loginRequest)
 	if err != nil {
 		return err
 	}
-	client.loginResult = &loginResponse.LoginResult
+	c.loginResult = &loginResponse.LoginResult
 	sessionHeader := SessionHeader{
-		SessionId: client.loginResult.SessionId,
+		SessionId: c.loginResult.SessionId,
 	}
-	client.portType.SetHeader(&sessionHeader)
-	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
+	c.portType.SetHeader(&sessionHeader)
+	c.portType.SetServerUrl(c.loginResult.MetadataServerUrl)
 	return nil
 }
 
-func (client *Client) Deploy(buf []byte, options *DeployOptions) (*DeployResponse, error) {
+func (c *Client) UseExistingSession(SessionId, MetadataServerUrl string) {
+	sessionHeader := SessionHeader{
+		SessionId: SessionId,
+	}
+	c.portType.SetHeader(&sessionHeader)
+	c.portType.SetServerUrl(MetadataServerUrl)
+}
+
+func (c *Client) Deploy(buf []byte, options *DeployOptions) (*DeployResponse, error) {
 	request := Deploy{
 		ZipFile:       base64.StdEncoding.EncodeToString(buf),
 		DeployOptions: options,
 	}
-	return client.portType.Deploy(&request)
+	return c.portType.Deploy(&request)
 }
 
-func (client *Client) CheckDeployStatus(resultId string, includeDetails bool) (*CheckDeployStatusResponse, error) {
+func (c *Client) CheckDeployStatus(resultId string, includeDetails bool) (*CheckDeployStatusResponse, error) {
 	request := CheckDeployStatus{AsyncProcessId: ID(resultId), IncludeDetails: includeDetails}
-	return client.portType.CheckDeployStatus(&request)
+	return c.portType.CheckDeployStatus(&request)
 }
 
-func (client *Client) CancelDeploy(processId string) (*CancelDeployResponse, error) {
+func (c *Client) CancelDeploy(processId string) (*CancelDeployResponse, error) {
 	request := CancelDeploy{AsyncProcessId: ID(processId)}
-	return client.portType.CancelDeploy(&request)
+	return c.portType.CancelDeploy(&request)
 }
 
-func (client *Client) DescribeMetadata() (*DescribeMetadataResponse, error) {
-	f, err := strconv.ParseFloat(client.ApiVersion, 32)
+func (c *Client) DescribeMetadata() (*DescribeMetadataResponse, error) {
+	f, err := strconv.ParseFloat(c.ApiVersion, 32)
 	if err != nil {
 		f = 37.0
 	}
 
 	request := DescribeMetadata{AsOfVersion: f}
-	return client.portType.DescribeMetadata(&request)
+	return c.portType.DescribeMetadata(&request)
 }
 
-func (client *Client) DescribeValueType(desc_type string) (*DescribeValueTypeResponse, error) {
+func (c *Client) DescribeValueType(desc_type string) (*DescribeValueTypeResponse, error) {
 	request := DescribeValueType{
 		Type: desc_type,
 	}
-	return client.portType.DescribeValueType(&request)
+	return c.portType.DescribeValueType(&request)
 }
 
-func (client *Client) ListMetadata(listMetadataQuery []*ListMetadataQuery) (*ListMetadataResponse, error) {
-	f, err := strconv.ParseFloat(client.ApiVersion, 32)
+func (c *Client) ListMetadata(listMetadataQuery []*ListMetadataQuery) (*ListMetadataResponse, error) {
+	f, err := strconv.ParseFloat(c.ApiVersion, 32)
 	if err != nil {
 		f = 37.0
 	}
@@ -135,53 +143,53 @@ func (client *Client) ListMetadata(listMetadataQuery []*ListMetadataQuery) (*Lis
 		Queries: listMetadataQuery,
 		AsOfVersion: f,
 	}
-	return client.portType.ListMetadata(&request)
+	return c.portType.ListMetadata(&request)
 }
 
-func (client *Client) CreateMetadata(metadata []MetadataInterface) (*CreateMetadataResponse, error) {
+func (c *Client) CreateMetadata(metadata []MetadataInterface) (*CreateMetadataResponse, error) {
 	request := CreateMetadata{
 		Metadata: metadata,
 	}
-	return client.portType.CreateMetadata(&request)
+	return c.portType.CreateMetadata(&request)
 }
 
-func (client *Client) DeleteMetadata(typeName string, fullNames []string) (*DeleteMetadataResponse, error) {
+func (c *Client) DeleteMetadata(typeName string, fullNames []string) (*DeleteMetadataResponse, error) {
 	request := DeleteMetadata{
 		FullNames: fullNames,
 		Type: typeName,
 	}
-	return client.portType.DeleteMetadata(&request)
+	return c.portType.DeleteMetadata(&request)
 }
 
-func (client *Client) ReadMetadata(typeName string, fullNames []string) (*ReadMetadataResponse, error) {
+func (c *Client) ReadMetadata(typeName string, fullNames []string) (*ReadMetadataResponse, error) {
 	request := ReadMetadata{
 		FullNames: fullNames,
 		Type: typeName,
 	}
-	return client.portType.ReadMetadata(&request)
+	return c.portType.ReadMetadata(&request)
 }
 
-func (client *Client) Retrieve(retrieveRequest *RetrieveRequest) (*RetrieveResponse, error) {
+func (c *Client) Retrieve(retrieveRequest *RetrieveRequest) (*RetrieveResponse, error) {
 	r := &Retrieve{
 		RetrieveRequest: retrieveRequest,
 	}
-	return client.portType.Retrieve(r)
+	return c.portType.Retrieve(r)
 }
 
-func (client *Client) RenameMetadata(r *RenameMetadata) (*RenameMetadataResponse, error) {
-	return client.portType.RenameMetadata(r)
+func (c *Client) RenameMetadata(r *RenameMetadata) (*RenameMetadataResponse, error) {
+	return c.portType.RenameMetadata(r)
 }
 
-func (client *Client) UpdateMetadata(metadata []MetadataInterface) (*UpdateMetadataResponse, error) {
-	return client.portType.UpdateMetadata(&UpdateMetadata{Metadata: metadata})
+func (c *Client) UpdateMetadata(metadata []MetadataInterface) (*UpdateMetadataResponse, error) {
+	return c.portType.UpdateMetadata(&UpdateMetadata{Metadata: metadata})
 }
 
-func (client *Client) UpsertMetadata(metadata []MetadataInterface) (*UpsertMetadataResponse, error) {
-	return client.portType.UpsertMetadata(&UpsertMetadata{Metadata: metadata})
+func (c *Client) UpsertMetadata(metadata []MetadataInterface) (*UpsertMetadataResponse, error) {
+	return c.portType.UpsertMetadata(&UpsertMetadata{Metadata: metadata})
 }
 
-func (client *Client) DeployRecentValidation(validationId string) (*DeployRecentValidationResponse, error) {
-	return client.portType.DeployRecentValidation(&DeployRecentValidation{
+func (c *Client) DeployRecentValidation(validationId string) (*DeployRecentValidationResponse, error) {
+	return c.portType.DeployRecentValidation(&DeployRecentValidation{
 		ValidationId: ID(validationId),
 	})
 }
